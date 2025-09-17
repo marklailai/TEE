@@ -49,9 +49,9 @@ if(CC_GP)
         link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
     endif()
     add_executable(${OUTPUT} ${SOURCE_FILE} ${AUTO_FILES})
-    target_include_directories(${OUTPUT} PRIVATE ${CMAKE_BINARY_DIR}/inc
-                                                 ${SECGEAR_INSTALL_DIR}/
-                                                 ${CMAKE_CURRENT_BINARY_DIR})
+    target_include_directories(${OUTPUT} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
+                                   ${SECGEAR_INSTALL_DIR}
+                                   ${CMAKE_SOURCE_DIR})
     if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13.0")
         target_link_directories(${OUTPUT} PRIVATE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
     endif()
@@ -64,7 +64,8 @@ if(CC_SGX)
     add_executable(${OUTPUT} ${SOURCE_FILE} ${AUTO_FILES})
     target_include_directories(${OUTPUT} PRIVATE ${SECGEAR_INSTALL_DIR}/
                                                  ${SDK_PATH}/include
-                                                 ${CMAKE_CURRENT_BINARY_DIR})
+                                                 ${CMAKE_CURRENT_BINARY_DIR}
+                                                 ${CMAKE_SOURCE_DIR})
     if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13.0")
         target_link_directories(${OUTPUT} PRIVATE ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} ${SDK_PATH}/lib64)
     endif()

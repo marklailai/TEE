@@ -17,6 +17,17 @@ enclave {
     trusted {
         public int get_string([out, size=32]char *buf);
         public int get_string_switchless([out, size=32]char *buf) transition_using_threads;
+
+        /* Tongsuo crypto functions */
+        public int enclave_sm3_hash([in, size=message_len] const uint8_t* message, size_t message_len, [out, size=32] uint8_t* hash_output) transition_using_threads;
+        public int enclave_sm4_encrypt_cbc([in, size=plaintext_len] const uint8_t* plaintext, size_t plaintext_len, [in, size=16] const uint8_t* key, [in, size=16] const uint8_t* iv, [out, size=ciphertext_len] uint8_t* ciphertext, size_t ciphertext_len) transition_using_threads;
+        /* Note: For this example, the SM2 key is assumed to be pre-provisioned inside the enclave */
+        /* The buffer sizes below are defined as literals to satisfy the codegen tool. */
+        /* They correspond to the macros in common/sm_crypto_defs.h */
+        public int enclave_sm2_sign([in, size=digest_len] const uint8_t* digest, size_t digest_len, [out, size=256] uint8_t* signature, [in, out] size_t* signature_len) transition_using_threads;
+        /* Generates a new SM2 keypair and stores it within the enclave */
+        public int enclave_sm2_keygen() transition_using_threads;
+        public int enclave_sm2_generate_key_pair([out, size=128] uint8_t* public_key, [in, out] size_t* public_key_len, [out, size=64] uint8_t* private_key, [in, out] size_t* private_key_len) transition_using_threads;
     };
 };
 

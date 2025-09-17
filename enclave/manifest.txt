@@ -1,7 +1,7 @@
 gpd.ta.appID:               a843365c-cac7-4c16-8562-d4a261b05682
 gpd.ta.service_name:        smx-test
 gpd.ta.singleInstance:      true
-gpd.ta.multiSession:        false
+gpd.ta.multiSession:        true
 gpd.ta.instanceKeepAlive:   false
 gpd.ta.dataSize:            67928064
 gpd.ta.stackSize:           4194304

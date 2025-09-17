@@ -27,4 +27,3 @@ int get_string_switchless(char *shared_buf)
     strncpy(shared_buf, TA_HELLO_WORLD, strlen(TA_HELLO_WORLD) + 1);
     return 0;
 }
-

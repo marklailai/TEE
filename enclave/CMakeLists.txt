@@ -18,7 +18,14 @@ set(PEM Enclave_private.pem)
 set(SIGN_TOOL sign_tool.sh)
 
 #set enclave src code
-set(SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/enclave.c)
+set(SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/enclv_misc.c
+                 ${CMAKE_CURRENT_SOURCE_DIR}/enclv_sm2.c
+                 ${CMAKE_CURRENT_SOURCE_DIR}/enclv_sm3.c
+                 ${CMAKE_CURRENT_SOURCE_DIR}/enclv_sm4.c)
+
+# Add Tongsuo paths
+include_directories(/usr/local/tongsuo/include)
+link_directories(/usr/local/tongsuo/lib)
 
 #set log level
 set(PRINT_LEVEL 3)
@@ -87,7 +94,8 @@ if(CC_GP)
                                                   ${ITRUSTEE_LIBC}/
                                                   ${ITRUSTEE_LIBC}/arch/arm/bits
                                                   ${ITRUSTEE_LIBC}/arch/generic
-                                                  ${ITRUSTEE_LIBC}/arch/arm)
+                                                  ${ITRUSTEE_LIBC}/arch/arm
+                                                  ${CMAKE_SOURCE_DIR}/common)
 
     if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13.0")
         target_link_directories(${PREFIX} PRIVATE ${CMAKE_BINARY_DIR}/lib/)
@@ -98,7 +106,7 @@ if(CC_GP)
     endforeach(WHITE_LIST)
     add_definitions(-DWHITE_LIST_OWNER="${WHITE_LIST_OWNER}")
 
-    target_link_libraries(${PREFIX} -lsecgear_tee)
+    target_link_libraries(${PREFIX} -lsecgear_tee /usr/local/tongsuo/lib/libcrypto.a)
 
     # for trustzone compiling, you should connact us to get config and private_key.pem for test, so we will not sign and install binary in this example #
     add_custom_command(TARGET ${PREFIX}
@@ -146,14 +154,15 @@ if(CC_SGX)
                                                  ${SGX_DIR}/include/tlibc
                                                  ${SGX_DIR}/include/libcxx
                                                  ${SGX_DIR}/include
-                                                 ${SECGEAR_INSTALL_DIR}/)
+                                                 ${SECGEAR_INSTALL_DIR}/
+                                                 ${CMAKE_SOURCE_DIR}/common)
 
     if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.13.0") 
         target_link_directories(${PREFIX} PRIVATE ${LINK_LIBRARY_PATH})
     endif()
 
     target_link_libraries(${PREFIX} -Wl,--whole-archive -lsgx_tswitchless ${Trts_Library_Name} -Wl,--no-whole-archive
-        -Wl,--start-group -lsgx_tstdc -lsgx_tcxx -l${Crypto_Library_Name} -l${Service_Library_Name} -Wl,--end-group)
+        -Wl,--start-group -lsgx_tstdc -lsgx_tcxx -l${Crypto_Library_Name} -l${Service_Library_Name} /usr/local/tongsuo/lib/libcrypto.a -Wl,--end-group)
     add_custom_command(TARGET ${PREFIX}
                        POST_BUILD
                        COMMAND umask 0177

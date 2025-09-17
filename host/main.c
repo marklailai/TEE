@@ -18,6 +18,7 @@
 #include "enclave.h"
 #include "secgear_uswitchless.h"
 #include "secgear_shared_memory.h"
+#include "common/sm_crypto_defs.h"
 
 #include "switchless_u.h"
 
@@ -80,6 +81,112 @@ int main()
     } else {
         printf("shared_buf: %s\n", shared_buf);
     }
+
+    /* Tongsuo crypto tests */
+    printf("\n--- Calling Tongsuo crypto functions in enclave ---\n");
+
+    /* SM3 Test */
+    const char* sm3_message = "Hello Tongsuo SM3 from secGear";
+    size_t msg_len = strlen(sm3_message);
+    
+    // Allocate shared memory for input message
+    char *sm3_msg_shared = (char *)cc_malloc_shared_memory(&context, msg_len + 1);
+    if (sm3_msg_shared == NULL) {
+        printf("Malloc sm3 message shared memory failed.\n");
+        goto error;
+    }
+    memcpy(sm3_msg_shared, sm3_message, msg_len);
+    
+    // Allocate shared memory for output hash
+    char *sm3_shared_buf = (char *)cc_malloc_shared_memory(&context, 32);
+    if (sm3_shared_buf == NULL) {
+        printf("Malloc sm3 shared memory failed.\n");
+        cc_free_shared_memory(&context, sm3_msg_shared);
+        goto error;
+    }
+    
+    res = enclave_sm3_hash(&context, &retval, (const uint8_t*)sm3_msg_shared, msg_len, (uint8_t*)sm3_shared_buf);
+    if (res != CC_SUCCESS || retval != 0) {
+        printf("Enclave SM3 hash failed. res=%d, retval=%d\n", res, retval);
+    } else {
+        printf("SM3 Hash: ");
+        for (int i = 0; i < 32; i++) {
+            printf("%02x", (unsigned char)sm3_shared_buf[i]);
+        }
+        printf("\n");
+    }
+    cc_free_shared_memory(&context, sm3_shared_buf);
+    cc_free_shared_memory(&context, sm3_msg_shared);
+
+    /* SM4 Test */
+    const char* sm4_plaintext = "Hello Tongsuo SM4 from secGear";
+    size_t plaintext_len = strlen(sm4_plaintext);
+    size_t ciphertext_len = (plaintext_len / 16 + 1) * 16;
+    
+    // Allocate shared memory for all parameters
+    char *sm4_plaintext_shared = (char *)cc_malloc_shared_memory(&context, plaintext_len + 1);
+    uint8_t *sm4_key_shared = (uint8_t *)cc_malloc_shared_memory(&context, 16);
+    uint8_t *sm4_iv_shared = (uint8_t *)cc_malloc_shared_memory(&context, 16);
+    char *sm4_shared_buf = (char *)cc_malloc_shared_memory(&context, ciphertext_len);
+    
+    if (sm4_plaintext_shared == NULL || sm4_key_shared == NULL || sm4_iv_shared == NULL || sm4_shared_buf == NULL) {
+        printf("Malloc sm4 shared memory failed.\n");
+        if (sm4_plaintext_shared) cc_free_shared_memory(&context, sm4_plaintext_shared);
+        if (sm4_key_shared) cc_free_shared_memory(&context, sm4_key_shared);
+        if (sm4_iv_shared) cc_free_shared_memory(&context, sm4_iv_shared);
+        if (sm4_shared_buf) cc_free_shared_memory(&context, sm4_shared_buf);
+        goto error;
+    }
+    
+    // Copy data to shared memory
+    memcpy(sm4_plaintext_shared, sm4_plaintext, plaintext_len);
+    memcpy(sm4_key_shared, "1234567890123456", 16);
+    memcpy(sm4_iv_shared, "1234567890123456", 16);
+
+    res = enclave_sm4_encrypt_cbc(&context, &retval, (const uint8_t*)sm4_plaintext_shared, plaintext_len, sm4_key_shared, sm4_iv_shared, (uint8_t*)sm4_shared_buf, ciphertext_len);
+    if (res != CC_SUCCESS || retval != 0) {
+        printf("Enclave SM4 encrypt failed. res=%d, retval=%d\n", res, retval);
+    } else {
+        printf("SM4 Ciphertext: ");
+        for (int i = 0; i < ciphertext_len; i++) {
+            printf("%02x", (unsigned char)sm4_shared_buf[i]);
+        }
+        printf("\n");
+    }
+    cc_free_shared_memory(&context, sm4_shared_buf);
+    cc_free_shared_memory(&context, sm4_plaintext_shared);
+    cc_free_shared_memory(&context, sm4_key_shared);
+    cc_free_shared_memory(&context, sm4_iv_shared);
+
+    /* SM2 Signing Test */
+    uint8_t sm3_hash_for_sm2[32];
+    /* First, get the SM3 hash of the message to be used in signing */
+    res = enclave_sm3_hash(&context, &retval, (const uint8_t*)sm3_message, strlen(sm3_message), sm3_hash_for_sm2);
+    if (res != CC_SUCCESS || retval != 0) {
+        printf("Enclave SM3 hash for SM2 signing failed.\n");
+        goto error;
+    }
+
+    size_t sm2_signature_len = 256; /* Max possible signature size */
+    char *sm2_shared_buf = (char *)cc_malloc_shared_memory(&context, sm2_signature_len);
+    if (sm2_shared_buf == NULL) {
+        printf("Malloc sm2 shared memory failed.\n");
+        goto error;
+    }
+
+    res = enclave_sm2_sign(&context, &retval, sm3_hash_for_sm2, sizeof(sm3_hash_for_sm2), (uint8_t*)sm2_shared_buf, &sm2_signature_len);
+     if (res != CC_SUCCESS || retval != 0) {
+        printf("Enclave SM2 sign failed.\n");
+    } else {
+        printf("SM2 Signature (len=%zu): ", sm2_signature_len);
+        for (int i = 0; i < sm2_signature_len; i++) {
+            printf("%02x", (unsigned char)sm2_shared_buf[i]);
+        }
+        printf("\n");
+    }
+    cc_free_shared_memory(&context, sm2_shared_buf);
+
+    printf("--- Tongsuo crypto tests finished ---\n\n");
 
     res = cc_free_shared_memory(&context, shared_buf);
     if (res != CC_SUCCESS) {
