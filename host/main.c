@@ -19,13 +19,79 @@
 #include "secgear_uswitchless.h"
 #include "secgear_shared_memory.h"
 #include "common/sm_crypto_defs.h"
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/bio.h>
 
 #include "switchless_u.h"
 
 #define BUF_LEN 32
 
+// Temporary test method for SM2 key generation
+void test_sm2_keygen()
+{
+    printf("=== SM2 Key Generation Test ===\n");
+    
+    EVP_PKEY_CTX *pctx = NULL;
+    EVP_PKEY *pkey = NULL;
+    BIO *bio_out = NULL;
+    
+    // Create context for SM2 key generation
+    pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL);
+    if (!pctx) {
+        printf("Failed to create EVP_PKEY_CTX\n");
+        return;
+    }
+    
+    // Initialize key generation
+    if (EVP_PKEY_keygen_init(pctx) <= 0) {
+        printf("Failed to initialize key generation\n");
+        goto cleanup;
+    }
+    
+    // Set curve to SM2
+    if (EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, NID_sm2) <= 0) {
+        printf("Failed to set SM2 curve\n");
+        goto cleanup;
+    }
+    
+    // Generate key pair
+    if (EVP_PKEY_keygen(pctx, &pkey) <= 0) {
+        printf("Failed to generate SM2 key pair\n");
+        goto cleanup;
+    }
+    
+    printf("SM2 key pair generated successfully!\n");
+    
+    // Print public key
+    bio_out = BIO_new(BIO_s_mem());
+    if (bio_out && PEM_write_bio_PUBKEY(bio_out, pkey)) {
+        char *pub_key_data;
+        long pub_key_len = BIO_get_mem_data(bio_out, &pub_key_data);
+        printf("Public Key:\n%.*s\n", (int)pub_key_len, pub_key_data);
+    }
+    BIO_free(bio_out);
+    
+    // Print private key
+    bio_out = BIO_new(BIO_s_mem());
+    if (bio_out && PEM_write_bio_PrivateKey(bio_out, pkey, NULL, NULL, 0, NULL, NULL)) {
+        char *priv_key_data;
+        long priv_key_len = BIO_get_mem_data(bio_out, &priv_key_data);
+        printf("Private Key:\n%.*s\n", (int)priv_key_len, priv_key_data);
+    }
+    
+cleanup:
+    if (bio_out) BIO_free(bio_out);
+    if (pkey) EVP_PKEY_free(pkey);
+    if (pctx) EVP_PKEY_CTX_free(pctx);
+    printf("=== End SM2 Key Generation Test ===\n\n");
+}
+
 int main()
 {
+    // Run SM2 key generation test
+    test_sm2_keygen();
+    
     int  retval = 0;
     char *path = PATH;
     char buf[BUF_LEN];
