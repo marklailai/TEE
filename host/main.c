@@ -121,7 +121,7 @@ int main()
     /* SM4 Test */
     const char* sm4_plaintext = "Hello Tongsuo SM4 from secGear";
     size_t plaintext_len = strlen(sm4_plaintext);
-    size_t ciphertext_len = (plaintext_len / 16 + 1) * 16;
+    size_t ciphertext_len = plaintext_len + 16;
     
     // Allocate shared memory for all parameters
     char *sm4_plaintext_shared = (char *)cc_malloc_shared_memory(&context, plaintext_len + 1);
