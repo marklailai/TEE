@@ -41,13 +41,13 @@ int enclave_sm2_keygen()
     if (EVP_PKEY_keygen_init(pctx) <= 0)
     {
         EVP_PKEY_CTX_free(pctx);
-        return -1;
+        return -2;
     }
 
     if (EVP_PKEY_keygen(pctx, &sm2_key) <= 0)
     {
         EVP_PKEY_CTX_free(pctx);
-        return -1;
+        return -3;
     }
 
     EVP_PKEY_CTX_free(pctx);
@@ -71,28 +71,33 @@ int enclave_sm2_generate_key_pair(uint8_t *public_key, size_t *public_key_len, u
     pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_SM2, NULL);
     if (pctx == NULL)
     {
+        ret = -2;
         goto cleanup;
     }
 
     if (EVP_PKEY_keygen_init(pctx) <= 0)
     {
+        ret = -3;
         goto cleanup;
     }
 
     if (EVP_PKEY_keygen(pctx, &key) <= 0 || key == NULL)
     {
+        ret = -4;
         goto cleanup;
     }
 
     // Extract private key
     if (EVP_PKEY_get_bn_param(key, OSSL_PKEY_PARAM_PRIV_KEY, &priv) <= 0)
     {
+        ret = -5;
         goto cleanup;
     }
 
     int priv_len = BN_bn2bin(priv, private_key);
     if (priv_len == 0)
     { // BN_bn2bin returns 0 on error
+        ret = -6;
         goto cleanup;
     }
     *private_key_len = priv_len;
@@ -100,28 +105,33 @@ int enclave_sm2_generate_key_pair(uint8_t *public_key, size_t *public_key_len, u
     // Extract public key length
     if (EVP_PKEY_get_octet_string_param(key, OSSL_PKEY_PARAM_PUB_KEY, NULL, 0, &pub_len) <= 0)
     {
+        ret = -7;
         goto cleanup;
     }
 
     // Sanity check to prevent large allocation
     if (pub_len > 1024)
     { // Adjust based on expected max size
+        ret = -8;
         goto cleanup;
     }
 
     pub_buf = OPENSSL_malloc(pub_len);
     if (pub_buf == NULL)
     {
+        ret = -9;
         goto cleanup;
     }
 
     if (EVP_PKEY_get_octet_string_param(key, OSSL_PKEY_PARAM_PUB_KEY, pub_buf, pub_len, &pub_len) <= 0)
     {
+        ret = -10;
         goto cleanup;
     }
 
     if (pub_len > *public_key_len)
     {
+        ret = -11;
         goto cleanup;
     }
 

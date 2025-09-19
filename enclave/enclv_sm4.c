@@ -46,17 +46,20 @@ int enclave_sm4_encrypt_cbc(const uint8_t* plaintext, size_t plaintext_len, cons
 
     if (EVP_EncryptInit_ex(ctx, EVP_sm4_cbc(), NULL, key, iv) != 1)
     {
+        ret = -4;
         goto exit;
     }
 
     if (EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len) != 1)
     {
+        ret = -5;
         goto exit;
     }
     out_len += len;
 
     if (EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) != 1)
     {
+        ret = -6;
         goto exit;
     }
     out_len += len;
